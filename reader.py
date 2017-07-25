@@ -13,7 +13,7 @@ VISITOR_PRE_PATH = os.path.join(BASE_PATH, 'visitor_stemmed_sequence.txt')
 LABEL_PATH = os.path.join(BASE_PATH, 'session_satisfaction.txt')
 
 
-def load_data(preprocess, dataType, encodeTime):
+def load_data(preprocess, maxseq, encodeTime):
 
     session_data = {}
     if preprocessing:
@@ -23,99 +23,53 @@ def load_data(preprocess, dataType, encodeTime):
         agent_path = AGENT_NOPRE_PATH
         visitor_path = VISITOR_PRE_PATH
 
-    if dataType is DataType.AGENT:
+    fvisitor = codecs.open(visitor_path, 'r', encoding='utf-8')
+    fagent = codecs.open(agent_path, 'r', encoding='utf-8')
 
-        with codecs.open(agent_path ,'r', encoding='utf-8') as f:
-            for line in f:
-                data = line.strip().split()
-                session_id = data[0]
-                words = []
+    visitor_lines = fvisitor.readlines()
+    agent_lines = fagent.readlines()
+    for ix, v_line in enumerate(visitor_lines):
 
-                for w in data[1:]:
-                    if ('AGENT_' in w or 'VISITOR_' in w) and encodeTime is True:
-                        words.append(preprocessing.NULL_TOKEN)
-                    elif ('AGENT_' in w or 'VISITOR_' in w) and encodeTime is False:
-                        pass
-                    elif w is preprocessing.NULL_TOKEN:
-                        pass
-                    else:
-                        words.append(w)
+        a_line = agent_lines[ix]
+        v_data = v_line.strip().split()
+        a_data = a_line.strip().split()
+        v_session_id = v_data[0]
+        a_session_id = a_data[0]
 
-                session_data[session_id] = words
+        if a_session_id != v_session_id:
+            print('There are unknown errors on reading lines. line number:{}'.format(ix))
+            exit()
+        else:
+            session_id = a_session_id
 
-    elif dataType is DataType.VISITOR:
+        v_target = v_data[1:]
+        a_target = a_data[1:]
+        words = []
 
-        with codecs.open(visitor_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                data = line.strip().split()
-                session_id = data[0]
-                words = []
+        a_target_len = len(a_target)
 
-                for w in data[1:]:
-                    if ('AGENT_' in w or 'VISITOR_' in w) and encodeTime is True:
-                        words.append(preprocessing.NULL_TOKEN)
-                    elif ('AGENT_' in w or 'VISITOR_' in w) and encodeTime is False:
-                        pass
-                    elif w is preprocessing.NULL_TOKEN:
-                        pass
-                    else:
-                        words.append(w)
-
-                session_data[session_id] = words
-
-    elif dataType is DataType.ALL:
-
-        fvisitor = codecs.open(visitor_path, 'r', encoding='utf-8')
-        fagent = codecs.open(agent_path, 'r', encoding='utf-8')
-
-        visitor_lines = fvisitor.readlines()
-        agent_lines = fagent.readlines()
-        for ix, v_line in enumerate(visitor_lines):
-
-            a_line = agent_lines[ix]
-            v_data = v_line.strip().split()
-            a_data = a_line.strip().split()
-            v_session_id = v_data[0]
-            a_session_id = a_data[0]
-
-            if a_session_id != v_session_id:
-                print('There are unknown errors on reading lines. line number:{}'.format(ix))
+        for wix, v_w in enumerate(v_target):
+            if wix >= a_target_len:
+                print('Unexpected error.')
+                print(len(a_data))
+                print(len(v_data))
                 exit()
-            else:
-                session_id = a_session_id
+            a_w = a_target[wix]
+            if a_w == v_w:
+                # time indicator
+                if encodeTime is True:
+                    words.append(preprocessing.NULL_TOKEN)
+                elif encodeTime is False:
+                    pass
 
-            v_target = v_data[1:]
-            a_target = a_data[1:]
-            words = []
+            elif a_w == preprocessing.NULL_TOKEN:
+                words.append(v_w)
+            elif v_w == preprocessing.NULL_TOKEN:
+                words.append(a_w)
 
-            a_target_len = len(a_target)
-
-            for wix, v_w in enumerate(v_target):
-                if wix >= a_target_len:
-                    print('Unexpected error.')
-                    print(len(a_data))
-                    print(len(v_data))
-                    exit()
-                a_w = a_target[wix]
-                if a_w == v_w:
-                    # time indicator
-                    if encodeTime is True:
-                        words.append(preprocessing.NULL_TOKEN)
-                    elif encodeTime is False:
-                        pass
-
-                elif a_w == preprocessing.NULL_TOKEN:
-                    words.append(v_w)
-                elif v_w == preprocessing.NULL_TOKEN:
-                    words.append(a_w)
-
-            session_data[session_id] = words
-        fvisitor.close()
-        fagent.close()
-
-    else:
-        print('Possible errors on the datatype input parameter')
-        exit()
+        session_data[session_id] = words[:maxseq]
+    fvisitor.close()
+    fagent.close()
 
     return session_data
 

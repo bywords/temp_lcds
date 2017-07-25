@@ -17,6 +17,99 @@ from samsung_rnn import *
 from utils import ModelType, EmbeddingType
 
 
+def read_train_eval_single(testid, preprocess, maxseq, modelType,
+                           dropout, earlyStop, seedNum, batchSize, maxEpoch):
+    LOG_BASE_DIR = 'log_single'
+    TRAIN_INSTANCE_DIR = os.path.join(LOG_BASE_DIR, '{}_{}_{}_{}_{}_{}_{}_{}_{}_{}'
+                                      .format(testid, preprocess, maxseq, modelType,
+                                              dropout, earlyStop, seedNum, batchSize, maxEpoch))
+    if not os.path.isdir(TRAIN_INSTANCE_DIR):
+        os.mkdir(TRAIN_INSTANCE_DIR)
+    log_csvfile = os.path.join(TRAIN_INSTANCE_DIR, 'log.csv')
+    result_file = os.path.join(TRAIN_INSTANCE_DIR, 'results.txt')
+
+    print('Load data')
+    session_data = load_data(preprocess=preprocess, maxseq=maxseq, encodeTime=False)
+    label_data = load_label()
+
+    sequence, labels = filter_labeled_data(session_data, label_data)
+
+    print('Load embedding')
+    if preprocess:
+        w2v_model = load_embedding(embeddingType=EmbeddingType.PRE_ALL)
+    else:
+        w2v_model = load_embedding(embeddingType=EmbeddingType.NOPRE_ALL)
+
+    print('Pre-processing sequences')
+    print(' - Get word vectors')
+    vocab_size, embedding_dim, word_indices, embedding_matrix = \
+        get_wordvectors_from_keyedvectors(w2v_model, seed=seedNum)
+
+    print(' - Transform sequences')
+    transformed_seq = transform_sequence(sequence, word_indices=word_indices)
+
+    print(' - Transform labels')
+    transformed_labels = transform_label(label_data)
+    print(' - Transform seq data to list')
+    X, y = transform_labeled_data_listform(transformed_seq, transformed_labels)
+
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=seedNum)
+    for train_index, test_index in sss.split(X, y):
+        pass
+
+    X_train, X_test = [X[i] for i in train_index], [X[i] for i in test_index]
+    y_train, y_test = [y[i] for i in train_index], [y[i] for i in test_index]
+
+    X_train, y_train = random_oversampling(X_train, y_train, seed=seedNum)
+    X_test, y_test = random_oversampling(X_test, y_test, seed=seedNum)
+
+    X_train = sequence.pad_sequences(X_train, maxlen=maxseq)
+    X_test = sequence.pad_sequences(X_tet, maxlen=maxseq)
+
+    list_callbacks = [CSVLogger(log_csvfile, separator=',', append=False)]
+    if earlyStop:
+        earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='auto')
+        list_callbacks.append(earlyStopping)
+
+    if modelType is ModelType.GRU_single:
+        model = GRU_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
+                           embedding=embedding, embedding_dim=embedding_dim)()
+        model.fit({'text': X_train}, y_train,
+                  validation_data=({'text':X_test}, y_test),
+                  batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
+        y_pred = model.predict({'text':X_test}, batch_size=batchSize, verbose=1)
+    elif modelType is ModelType.LSTM_single:
+        model = LSTM_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
+                           embedding=embedding, embedding_dim=embedding_dim)()
+        model.fit({'text': X_train}, y_train,
+                  validation_data=({'text': X_test}, y_test),
+                  batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
+        y_pred = model.predict({'text': X_test}, batch_size=batchSize, verbose=1)
+    elif modelType is ModelType.RNN_single:
+        model = SimpleRNN_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
+                                 embedding=embedding, embedding_dim=embedding_dim)()
+        model.fit({'text': X_train}, y_train,
+                  validation_data=({'text': X_test}, y_test),
+                  batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
+        y_pred = model.predict({'text': X_test}, batch_size=batchSize, verbose=1)
+    elif modelType is ModelType.CNN_single:
+        model = TextCNN_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
+                               embedding=embedding, embedding_dim=embedding_dim)()
+        model.fit({'text': X_train}, y_train,
+                  validation_data=({'text': X_test}, y_test),
+                  batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
+        y_pred = model.predict({'text': X_test}, batch_size=batchSize, verbose=1)
+    else:
+        print('This function should be set for XXX_single modeltype.')
+        exit()
+
+    print('Evaluation..')
+    with open(result_file, 'wt') as f:
+        writer.eval(y_pred, y_test, file=f)
+
+
+
+
 def read_train_eval(testid, allDataForEmbed, preprocess, maxseq, modelType,
                     dropout, earlyStop, seedNum, batchSize, maxEpoch):
     LOG_BASE_DIR = 'log_separate'

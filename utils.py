@@ -28,6 +28,10 @@ class ModelType:
     GRU_combined = 2
     LSTM_combined = 3
     CNN_combined = 4
+    RNN_single = 17
+    GRU_single = 18
+    LSTM_single = 19
+    CNN_single = 20
     RNN_agent = 5
     GRU_agent = 6
     LSTM_agent = 7
