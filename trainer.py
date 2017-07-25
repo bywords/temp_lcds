@@ -20,7 +20,7 @@ from utils import ModelType, EmbeddingType
 def read_train_eval_single(testid, preprocess, maxseq, modelType,
                            dropout, earlyStop, seedNum, batchSize, maxEpoch):
     LOG_BASE_DIR = 'log_single'
-    TRAIN_INSTANCE_DIR = os.path.join(LOG_BASE_DIR, '{}_{}_{}_{}_{}_{}_{}_{}_{}_{}'
+    TRAIN_INSTANCE_DIR = os.path.join(LOG_BASE_DIR, '{}_{}_{}_{}_{}_{}_{}_{}_{}'
                                       .format(testid, preprocess, maxseq, modelType,
                                               dropout, earlyStop, seedNum, batchSize, maxEpoch))
     if not os.path.isdir(TRAIN_INSTANCE_DIR):
