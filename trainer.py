@@ -17,11 +17,11 @@ from samsung_rnn import *
 from utils import ModelType, EmbeddingType
 
 
-def read_train_eval(testid, allDataForEmbed, preprocess, encodeTime, maxseq, modelType,
-                             dropout, earlyStop, seedNum, batchSize, maxEpoch):
+def read_train_eval(testid, allDataForEmbed, preprocess, maxseq, modelType,
+                    dropout, earlyStop, seedNum, batchSize, maxEpoch):
     LOG_BASE_DIR = 'log_separate'
-    TRAIN_INSTANCE_DIR = os.path.join(LOG_BASE_DIR, '{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}'
-                                      .format(testid, allDataForEmbed, preprocess, encodeTime, maxseq, modelType,
+    TRAIN_INSTANCE_DIR = os.path.join(LOG_BASE_DIR, '{}_{}_{}_{}_{}_{}_{}_{}_{}_{}'
+                                      .format(testid, allDataForEmbed, preprocess, maxseq, modelType,
                                               dropout, earlyStop, seedNum, batchSize, maxEpoch))
     if not os.path.isdir(TRAIN_INSTANCE_DIR):
         os.mkdir(TRAIN_INSTANCE_DIR)
@@ -86,6 +86,8 @@ def read_train_eval(testid, allDataForEmbed, preprocess, encodeTime, maxseq, mod
           [X_agent_time[i] for i in test_index], [X_visitor_time[i] for i in test_index]
     y_train, y_test = [y[i] for i in train_index], [y[i] for i in test_index]
 
+
+
     '''
     sss_for_validation = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=seedNum)
     for real_train_index, validation_index in sss_for_validation.split(X_agent_train, y_train):
@@ -110,6 +112,11 @@ def read_train_eval(testid, allDataForEmbed, preprocess, encodeTime, maxseq, mod
     X_agent_train, X_visitor_train, X_agent_time_train, X_visitor_time_train, y_train = \
         random_oversampling_separate(X_agent_train, X_visitor_train,
                                      X_agent_time_train, X_visitor_time_train, y_train, seed=seedNum)
+
+    X_agent_test, X_visitor_test, X_agent_time_test, X_visitor_time_test, y_test = \
+        random_oversampling_separate(X_agent_test, X_visitor_test,
+                                     X_agent_time_test, X_visitor_time_test, y_test, seed=seedNum)
+
 
     X_agent_train = sequence.pad_sequences(X_agent_train, maxlen=maxseq)
     X_visitor_train = sequence.pad_sequences(X_visitor_train, maxlen=maxseq)
