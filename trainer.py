@@ -32,7 +32,7 @@ def read_train_eval_single(testid, preprocess, maxseq, modelType,
     session_data = load_data(preprocess=preprocess, maxseq=maxseq, encodeTime=False)
     label_data = load_label()
 
-    sequence, labels = filter_labeled_data(session_data, label_data)
+    sequences, labels = filter_labeled_data(session_data, label_data)
 
     print('Load embedding')
     if preprocess:
@@ -46,7 +46,7 @@ def read_train_eval_single(testid, preprocess, maxseq, modelType,
         get_wordvectors_from_keyedvectors(w2v_model, seed=seedNum)
 
     print(' - Transform sequences')
-    transformed_seq = transform_sequence(sequence, word_indices=word_indices)
+    transformed_seq = transform_sequence(sequences, word_indices=word_indices)
 
     print(' - Transform labels')
     transformed_labels = transform_label(label_data)
@@ -64,7 +64,7 @@ def read_train_eval_single(testid, preprocess, maxseq, modelType,
     X_test, y_test = random_oversampling(X_test, y_test, seed=seedNum)
 
     X_train = sequence.pad_sequences(X_train, maxlen=maxseq)
-    X_test = sequence.pad_sequences(X_tet, maxlen=maxseq)
+    X_test = sequence.pad_sequences(X_test, maxlen=maxseq)
 
     list_callbacks = [CSVLogger(log_csvfile, separator=',', append=False)]
     if earlyStop:
@@ -72,29 +72,29 @@ def read_train_eval_single(testid, preprocess, maxseq, modelType,
         list_callbacks.append(earlyStopping)
 
     if modelType is ModelType.GRU_single:
-        model = GRU_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
-                           embedding=embedding, embedding_dim=embedding_dim)()
+        model = GRU_single(vocab_size=vocab_size, maxlen=maxseq, dropout=dropout,
+                           embedding=embedding_matrix, embedding_dim=embedding_dim)()
         model.fit({'text': X_train}, y_train,
                   validation_data=({'text':X_test}, y_test),
                   batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
         y_pred = model.predict({'text':X_test}, batch_size=batchSize, verbose=1)
     elif modelType is ModelType.LSTM_single:
-        model = LSTM_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
-                           embedding=embedding, embedding_dim=embedding_dim)()
+        model = LSTM_single(vocab_size=vocab_size, maxlen=maxseq, dropout=dropout,
+                           embedding=embedding_matrix, embedding_dim=embedding_dim)()
         model.fit({'text': X_train}, y_train,
                   validation_data=({'text': X_test}, y_test),
                   batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
         y_pred = model.predict({'text': X_test}, batch_size=batchSize, verbose=1)
     elif modelType is ModelType.RNN_single:
-        model = SimpleRNN_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
-                                 embedding=embedding, embedding_dim=embedding_dim)()
+        model = SimpleRNN_single(vocab_size=vocab_size, maxlen=maxseq, dropout=dropout,
+                                 embedding=embedding_matrix, embedding_dim=embedding_dim)()
         model.fit({'text': X_train}, y_train,
                   validation_data=({'text': X_test}, y_test),
                   batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
         y_pred = model.predict({'text': X_test}, batch_size=batchSize, verbose=1)
     elif modelType is ModelType.CNN_single:
-        model = TextCNN_single(vocab_size=vocab_size, maxlen=maxlen, dropout=dropout,
-                               embedding=embedding, embedding_dim=embedding_dim)()
+        model = TextCNN_single(vocab_size=vocab_size, maxlen=maxseq, dropout=dropout,
+                               embedding=embedding_matrix, embedding_dim=embedding_dim)()
         model.fit({'text': X_train}, y_train,
                   validation_data=({'text': X_test}, y_test),
                   batch_size=batchSize, epochs=maxEpoch, verbose=1, callbacks=list_callbacks)
