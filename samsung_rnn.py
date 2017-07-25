@@ -299,7 +299,8 @@ class GRU_single():
         x = Embedding(output_dim=self.embedding_dim, input_dim=self.vocab_size, input_length=self.maxlen,
                             weights=[self.embedding_matrix], trainable=False)(text)
 
-        output = keras.layers.GRU(units=self.embedding_dim, dropout=self.dropout,
+        hidden_dim = self.embedding_dim / 4
+        output = keras.layers.GRU(units=hidden_dim, dropout=self.dropout,
                                         recurrent_dropout=self.dropout)(x)
         # And finally we add the main logistic regression layer
         main_output = Dense(1, activation='tanh', name='main_output', activity_regularizer=regularizers.l2(0.001))(output)
